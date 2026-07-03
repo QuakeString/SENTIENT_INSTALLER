@@ -1,0 +1,24 @@
+# The Tauri shell is its OWN workspace (note the [workspace] table) so the root
+# `cargo build` stays free of Tauri/webkit system deps. Depends on the core by path.
+[package]
+name = "sentient-installer-app"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+authors = ["The SENTIENT Authors"]
+description = "SENTIENT Installer — desktop app"
+
+[workspace]
+
+[lib]
+name = "sentient_installer_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sentient-installer-core = { path = "../crates/sentient-installer-core" }

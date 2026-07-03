@@ -1,0 +1,18 @@
+# Root workspace: the UI-agnostic core (checks + provisioning logic) + a small
+# CLI. The Tauri shell in src-tauri/ is its OWN workspace (keeps the root build
+# free of webkit/system deps), depending on the core by path.
+[workspace]
+resolver = "2"
+members = ["crates/sentient-installer-core"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+authors = ["The SENTIENT Authors"]
+repository = "https://github.com/QuakeString/SENTIENT_INSTALLER"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sysinfo = "0.32"

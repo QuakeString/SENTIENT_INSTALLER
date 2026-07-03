@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SENTIENT Installer</title>
+  <style>
+    :root { --bg:#eef2f4; --panel:#ffffff; --line:#d3dde2; --fg:#1b2429; --muted:#5c6b73; --accent:#2f9e8f; --accent2:#31525a; --ok:#2f9e8f; --err:#c0392b; --warn:#c9822a; --input:#f3f7f9; }
+    :root[data-theme="dark"] { --bg:#161e22; --panel:#1f2a30; --line:#33454e; --fg:#e6edf0; --muted:#93a4ad; --accent:#2f9e8f; --accent2:#243138; --ok:#57d1a0; --err:#e5675b; --warn:#e0a458; --input:#18232a; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) { --bg:#161e22; --panel:#1f2a30; --line:#33454e; --fg:#e6edf0; --muted:#93a4ad; --accent:#2f9e8f; --accent2:#243138; --ok:#57d1a0; --err:#e5675b; --warn:#e0a458; --input:#18232a; }
+    }
+    * { box-sizing:border-box; }
+    html, body { height:100%; }
+    body { margin:0; font:14px/1.45 system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--fg); display:flex; flex-direction:column; overflow:hidden; }
+    .statusbar { display:flex; align-items:center; gap:10px; padding:9px 16px; background:var(--accent2); color:#eaf1f2; flex-shrink:0; }
+    .statusbar img { width:22px; height:22px; }
+    .statusbar .name { font-weight:600; }
+    .statusbar .spacer { flex:1; }
+    .statusbar .ver { font-size:12px; opacity:.8; }
+    main { flex:1; overflow:auto; padding:26px 30px; }
+    .wrap { max-width:640px; margin:0 auto; }
+    h1 { margin:0 0 4px; font-size:22px; font-weight:650; }
+    .sub { color:var(--muted); margin:0 0 22px; }
+    .checks { display:flex; flex-direction:column; gap:8px; }
+    .check { display:flex; align-items:flex-start; gap:12px; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+    .check .icon { width:22px; height:22px; flex-shrink:0; margin-top:1px; }
+    .check .body { flex:1; min-width:0; }
+    .check .label { font-weight:600; }
+    .check .detail { color:var(--muted); font-size:12.5px; margin-top:2px; }
+    .s-pass { color:var(--ok); } .s-setup { color:var(--accent); } .s-fail { color:var(--err); } .s-unknown { color:var(--muted); }
+    .actions { display:flex; justify-content:space-between; align-items:center; margin-top:24px; gap:12px; }
+    button { background:var(--accent); color:#04211d; border:0; border-radius:8px; padding:10px 20px; font-weight:600; cursor:pointer; }
+    button:disabled { opacity:.5; cursor:default; }
+    button.ghost { background:transparent; color:var(--fg); border:1px solid var(--line); }
+    .note { color:var(--muted); font-size:12.5px; }
+    .summary { margin:16px 0 0; font-size:13px; }
+    .summary.bad { color:var(--err); }
+    .spin { animation:spin 1s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-pass" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+    <symbol id="i-setup" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+    <symbol id="i-fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></symbol>
+    <symbol id="i-unknown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+    <symbol id="i-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></symbol>
+  </svg>
+
+  <div class="statusbar">
+    <img src="logo.png" alt="" />
+    <span class="name">SENTIENT Installer</span>
+    <span class="spacer"></span>
+    <span class="ver" id="ver">v0.1.0</span>
+  </div>
+
+  <main>
+    <div class="wrap">
+      <h1>System check</h1>
+      <p class="sub">Making sure your PC is ready to run SENTIENT. Nothing is changed at this step.</p>
+      <div class="checks" id="checks"></div>
+      <div class="summary" id="summary"></div>
+      <div class="actions">
+        <button class="ghost" id="recheck">Re-check</button>
+        <button id="next" disabled>Continue</button>
+      </div>
+      <p class="note" id="nextNote" style="margin-top:10px"></p>
+    </div>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

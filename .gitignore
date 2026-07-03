@@ -3,3 +3,4 @@
 **/*.rs.bk
 dist/
 .DS_Store
+/src-tauri/gen/
