@@ -12,10 +12,14 @@ use sentient_installer_core::checks::{self, Check};
 use sentient_installer_core::progress::{Progress, ProgressFn};
 use sentient_installer_core::wsl;
 
-/// Run every preflight check and return the results for the UI.
+/// Run every preflight check and return the results for the UI. The checks shell
+/// out to PowerShell/WSL (slow to spawn), so run them off the main thread to keep
+/// the UI responsive.
 #[tauri::command]
-fn preflight() -> Vec<Check> {
-    checks::run_all()
+async fn preflight() -> Vec<Check> {
+    tauri::async_runtime::spawn_blocking(checks::run_all)
+        .await
+        .unwrap_or_default()
 }
 
 #[derive(Serialize)]
@@ -47,8 +51,10 @@ async fn install_wsl(on_progress: Channel<Progress>) -> WslResult {
 
 /// Is WSL functional right now? (used after a reboot to verify).
 #[tauri::command]
-fn wsl_ready() -> bool {
-    wsl::is_ready()
+async fn wsl_ready() -> bool {
+    tauri::async_runtime::spawn_blocking(wsl::is_ready)
+        .await
+        .unwrap_or(false)
 }
 
 // ---- install-state persistence (survives reboots) ----------------------------
