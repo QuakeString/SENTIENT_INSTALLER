@@ -4,6 +4,9 @@
 
 use serde::Serialize;
 
+#[cfg(windows)]
+use crate::sys::{decode, output};
+
 #[derive(Serialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum Status {
@@ -44,32 +47,6 @@ pub fn run_all() -> Vec<Check> {
 }
 
 // ---- command helper ----------------------------------------------------------
-
-/// Run a command; returns (success, stdout, stderr). Hides the console window on
-/// Windows so the GUI app doesn't flash terminals.
-#[cfg_attr(not(windows), allow(dead_code))]
-fn output(cmd: &str, args: &[&str]) -> Option<(bool, Vec<u8>, Vec<u8>)> {
-    let mut c = std::process::Command::new(cmd);
-    c.args(args);
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        c.creation_flags(0x0800_0000); // CREATE_NO_WINDOW
-    }
-    let o = c.output().ok()?;
-    Some((o.status.success(), o.stdout, o.stderr))
-}
-
-/// wsl.exe writes UTF-16LE on many Windows builds; decode either encoding.
-#[cfg_attr(not(windows), allow(dead_code))]
-fn decode(bytes: &[u8]) -> String {
-    if bytes.len() >= 2 && bytes.iter().skip(1).step_by(2).take(8).filter(|&&b| b == 0).count() >= 3 {
-        let u16s: Vec<u16> = bytes.chunks_exact(2).map(|c| u16::from_le_bytes([c[0], c[1]])).collect();
-        String::from_utf16_lossy(&u16s)
-    } else {
-        String::from_utf8_lossy(bytes).into_owned()
-    }
-}
 
 #[cfg(windows)]
 fn ps(script: &str) -> String {
