@@ -82,6 +82,79 @@ async fn docker_ready() -> bool {
         .unwrap_or(false)
 }
 
+/// Deploy the SENTIENT stack, then register a logon task to start it on boot.
+#[tauri::command]
+async fn deploy_sentient(on_progress: Channel<Progress>) -> Result<(), String> {
+    let ch = on_progress;
+    let res = tauri::async_runtime::spawn_blocking(move || {
+        let sink: ProgressFn = Arc::new(move |p| {
+            let _ = ch.send(p);
+        });
+        distro::deploy(sink)
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+    if res.is_ok() {
+        let _ = arm_autostart();
+    }
+    res
+}
+
+/// Is the SENTIENT web server up?
+#[tauri::command]
+async fn sentient_running() -> bool {
+    tauri::async_runtime::spawn_blocking(distro::is_running)
+        .await
+        .unwrap_or(false)
+}
+
+/// Open the SENTIENT web UI in the default browser.
+#[tauri::command]
+fn open_sentient() -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        std::process::Command::new("cmd")
+            .args(["/c", "start", "", "http://localhost:8080"])
+            .creation_flags(0x0800_0000)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+/// Register a logon task that starts the distro + SENTIENT on boot (WSL2 distros
+/// don't auto-start). Best-effort.
+fn arm_autostart() -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        let out = std::process::Command::new("schtasks")
+            .args([
+                "/create",
+                "/tn",
+                "SENTIENT Autostart",
+                "/tr",
+                "wsl -d sentient -- docker compose -f /opt/sentient/docker-compose.yml up -d",
+                "/sc",
+                "onlogon",
+                "/rl",
+                "highest",
+                "/f",
+            ])
+            .creation_flags(0x0800_0000)
+            .output()
+            .map_err(|e| e.to_string())?;
+        if out.status.success() {
+            Ok(())
+        } else {
+            Err(String::from_utf8_lossy(&out.stderr).into_owned())
+        }
+    }
+    #[cfg(not(windows))]
+    Ok(())
+}
+
 // ---- install-state persistence (survives reboots) ----------------------------
 
 fn state_file(app: &tauri::AppHandle) -> Option<PathBuf> {
@@ -177,6 +250,9 @@ pub fn run() {
             wsl_ready,
             setup_docker,
             docker_ready,
+            deploy_sentient,
+            sentient_running,
+            open_sentient,
             get_state,
             set_state,
             arm_resume,

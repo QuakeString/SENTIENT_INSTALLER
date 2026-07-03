@@ -72,7 +72,7 @@
     <img src="logo.png" alt="" />
     <span class="name">SENTIENT Installer</span>
     <span class="spacer"></span>
-    <span class="ver">v0.1.5</span>
+    <span class="ver">v0.1.6</span>
   </div>
 
   <div class="rail" id="rail">
@@ -161,11 +161,30 @@
         </div>
       </section>
 
-      <!-- ===== DEPLOY (placeholder) ===== -->
+      <!-- ===== DEPLOY ===== -->
       <section class="view" id="deployView">
         <h1>Deploy SENTIENT</h1>
-        <p class="sub">Coming in the next phase.</p>
-        <div class="card"><p class="note" style="margin:0">Pulling and starting the SENTIENT stack (postgres + sentient) lands in Phase 3.</p></div>
+        <p class="sub">Pull the SENTIENT images and start the stack. It'll be at localhost:8080 when ready.</p>
+
+        <div id="deployStart" class="card">
+          <button id="deployBtn">Deploy SENTIENT</button>
+        </div>
+
+        <div id="deployProgress" class="card" style="display:none">
+          <div class="pbar" id="dpPbar"><div class="fill"></div></div>
+          <div class="pstep" id="dpStep"></div>
+          <p class="note" style="margin:2px 0 10px">First run pulls ~1 GB of images and initializes the database — a few minutes. The window stays responsive.</p>
+          <pre class="plog" id="dpLog"></pre>
+        </div>
+
+        <div id="deployReady" class="card" style="display:none">
+          <div class="pstep s-pass">✓ SENTIENT is running</div>
+          <p class="note">Open <b>http://localhost:8080</b> and sign in as sys-admin:<br>
+            &nbsp;&nbsp;<b>admin@sentient.local</b> &nbsp;/&nbsp; <b>admin123</b><br>
+            It starts automatically on login from now on.</p>
+          <button id="openBtn" style="margin-top:10px">Open SENTIENT</button>
+        </div>
+
         <div class="actions"><button class="ghost" id="backDocker">Back</button><span></span></div>
       </section>
     </div>

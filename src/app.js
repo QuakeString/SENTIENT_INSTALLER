@@ -162,6 +162,54 @@ async function setupDocker() {
   }
 }
 
+// ---- Step 4: Deploy ---------------------------------------------------------
+function deployMode(mode) {
+  $("deployStart").style.display = mode === "start" ? "" : "none";
+  $("deployReady").style.display = mode === "ready" ? "" : "none";
+}
+
+async function setupDeploy() {
+  $("deployBtn").disabled = true;
+  $("deployStart").style.display = "none";
+  $("deployProgress").style.display = "";
+  $("dpLog").textContent = "";
+  $("dpStep").textContent = "Starting…";
+  const bar = $("dpPbar"), fill = bar.querySelector(".fill");
+  bar.classList.add("run");
+  fill.style.width = "30%";
+
+  const ch = new Channel();
+  ch.onmessage = (p) => {
+    if (p.type === "step") {
+      $("dpStep").textContent = p.name;
+      bar.classList.add("run");
+      fill.style.width = "30%";
+    } else if (p.type === "log") {
+      const l = $("dpLog");
+      l.textContent += p.line + "\n";
+      l.scrollTop = l.scrollHeight;
+    } else if (p.type === "done") {
+      bar.classList.remove("run");
+      fill.style.width = "100%";
+      $("dpStep").textContent = "✓ " + p.message;
+    } else if (p.type === "error") {
+      bar.classList.remove("run");
+      $("dpStep").textContent = "✗ " + p.message;
+    }
+  };
+
+  try {
+    await invoke("deploy_sentient", { onProgress: ch });
+    await invoke("set_state", { step: "deployed" });
+    deployMode("ready");
+  } catch (e) {
+    bar.classList.remove("run");
+    $("dpStep").textContent = "Failed: " + e;
+    $("deployBtn").disabled = false;
+    $("deployStart").style.display = "";
+  }
+}
+
 // ---- Init / resume ----------------------------------------------------------
 async function init() {
   if (!invoke) return;
@@ -170,7 +218,10 @@ async function init() {
     state = await invoke("get_state");
   } catch { /* default */ }
 
-  if (state === "docker_ready") {
+  if (state === "deployed") {
+    showStep("deploy");
+    deployMode("ready");
+  } else if (state === "docker_ready") {
     showStep("docker");
     dockerMode("ready");
   } else if (state === "wsl_ready") {
@@ -204,6 +255,8 @@ $("rebootLater").addEventListener("click", () => { $("wslReboot").style.display 
 $("toDocker").addEventListener("click", () => { showStep("docker"); dockerMode($("dockerReady").style.display === "" ? "ready" : "start"); });
 $("backWsl").addEventListener("click", () => showStep("wsl"));
 $("dockerBtn").addEventListener("click", setupDocker);
-$("toDeploy").addEventListener("click", () => showStep("deploy"));
+$("toDeploy").addEventListener("click", () => { showStep("deploy"); deployMode($("deployReady").style.display === "" ? "ready" : "start"); });
 $("backDocker").addEventListener("click", () => showStep("docker"));
+$("deployBtn").addEventListener("click", setupDeploy);
+$("openBtn").addEventListener("click", () => invoke("open_sentient"));
 init();
