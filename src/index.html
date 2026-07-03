@@ -72,7 +72,7 @@
     <img src="logo.png" alt="" />
     <span class="name">SENTIENT Installer</span>
     <span class="spacer"></span>
-    <span class="ver">v0.1.4</span>
+    <span class="ver">v0.1.5</span>
   </div>
 
   <div class="rail" id="rail">
@@ -134,12 +134,39 @@
         </div>
       </section>
 
-      <!-- ===== DOCKER (placeholder) ===== -->
+      <!-- ===== DOCKER ===== -->
       <section class="view" id="dockerView">
         <h1>Docker Engine</h1>
+        <p class="sub">Creates a dedicated Ubuntu distro inside WSL2 and installs Docker Engine in it.</p>
+
+        <div id="dockerStart" class="card">
+          <button id="dockerBtn">Set up Docker</button>
+        </div>
+
+        <div id="dockerProgress" class="card" style="display:none">
+          <div class="pbar" id="dkPbar"><div class="fill"></div></div>
+          <div class="pstep" id="dkStep"></div>
+          <p class="note" style="margin:2px 0 10px">Downloads ~350 MB and installs Docker — a few minutes. The window stays responsive.</p>
+          <pre class="plog" id="dkLog"></pre>
+        </div>
+
+        <div id="dockerReady" class="card" style="display:none">
+          <div class="pstep s-pass">✓ Docker Engine is ready</div>
+          <p class="note">The dedicated SENTIENT distro is set up with Docker running.</p>
+        </div>
+
+        <div class="actions">
+          <button class="ghost" id="backWsl">Back</button>
+          <button id="toDeploy" disabled>Continue</button>
+        </div>
+      </section>
+
+      <!-- ===== DEPLOY (placeholder) ===== -->
+      <section class="view" id="deployView">
+        <h1>Deploy SENTIENT</h1>
         <p class="sub">Coming in the next phase.</p>
-        <div class="card"><p class="note" style="margin:0">Distro import + Docker Engine install lands in Phase 2.</p></div>
-        <div class="actions"><button class="ghost" id="backWsl">Back</button><span></span></div>
+        <div class="card"><p class="note" style="margin:0">Pulling and starting the SENTIENT stack (postgres + sentient) lands in Phase 3.</p></div>
+        <div class="actions"><button class="ghost" id="backDocker">Back</button><span></span></div>
       </section>
     </div>
   </main>

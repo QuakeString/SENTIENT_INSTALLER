@@ -10,6 +10,8 @@ pub enum Progress {
     Step { name: String },
     /// A line of tool output.
     Log { line: String },
+    /// Fraction complete of the current step, 0.0..=1.0 (e.g. a download).
+    Percent { value: f32 },
     /// Finished successfully.
     Done { message: String },
     /// Failed.

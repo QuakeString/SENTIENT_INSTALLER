@@ -5,7 +5,7 @@ const invoke = window.__TAURI__?.core?.invoke;
 const Channel = window.__TAURI__?.core?.Channel;
 const $ = (id) => document.getElementById(id);
 
-const STEPS = ["checks", "wsl", "docker"];
+const STEPS = ["checks", "wsl", "docker", "deploy"];
 const ICON = { pass: "i-pass", setup: "i-setup", fail: "i-fail", unknown: "i-unknown" };
 
 function showStep(name) {
@@ -109,6 +109,59 @@ async function setupWsl() {
   }
 }
 
+// ---- Step 3: Docker ---------------------------------------------------------
+function dockerMode(mode) {
+  // mode: "start" | "ready"
+  $("dockerStart").style.display = mode === "start" ? "" : "none";
+  $("dockerReady").style.display = mode === "ready" ? "" : "none";
+  $("toDeploy").disabled = mode !== "ready";
+}
+
+async function setupDocker() {
+  $("dockerBtn").disabled = true;
+  $("dockerStart").style.display = "none";
+  $("dockerProgress").style.display = "";
+  $("dkLog").textContent = "";
+  $("dkStep").textContent = "Starting…";
+  const bar = $("dkPbar"), fill = bar.querySelector(".fill");
+  bar.classList.add("run");
+  fill.style.width = "30%";
+
+  const ch = new Channel();
+  ch.onmessage = (p) => {
+    if (p.type === "step") {
+      $("dkStep").textContent = p.name;
+      bar.classList.add("run");
+      fill.style.width = "30%";
+    } else if (p.type === "percent") {
+      bar.classList.remove("run");
+      fill.style.width = Math.round(p.value * 100) + "%";
+    } else if (p.type === "log") {
+      const l = $("dkLog");
+      l.textContent += p.line + "\n";
+      l.scrollTop = l.scrollHeight;
+    } else if (p.type === "done") {
+      bar.classList.remove("run");
+      fill.style.width = "100%";
+      $("dkStep").textContent = "✓ " + p.message;
+    } else if (p.type === "error") {
+      bar.classList.remove("run");
+      $("dkStep").textContent = "✗ " + p.message;
+    }
+  };
+
+  try {
+    await invoke("setup_docker", { onProgress: ch });
+    await invoke("set_state", { step: "docker_ready" });
+    dockerMode("ready");
+  } catch (e) {
+    bar.classList.remove("run");
+    $("dkStep").textContent = "Failed: " + e;
+    $("dockerBtn").disabled = false;
+    $("dockerStart").style.display = "";
+  }
+}
+
 // ---- Init / resume ----------------------------------------------------------
 async function init() {
   if (!invoke) return;
@@ -117,7 +170,10 @@ async function init() {
     state = await invoke("get_state");
   } catch { /* default */ }
 
-  if (state === "wsl_ready") {
+  if (state === "docker_ready") {
+    showStep("docker");
+    dockerMode("ready");
+  } else if (state === "wsl_ready") {
     showStep("wsl");
     wslMode("ready");
   } else if (state === "wsl_pending_reboot") {
@@ -145,6 +201,9 @@ $("backChecks").addEventListener("click", () => showStep("checks"));
 $("wslBtn").addEventListener("click", setupWsl);
 $("rebootBtn").addEventListener("click", () => invoke("reboot_now"));
 $("rebootLater").addEventListener("click", () => { $("wslReboot").style.display = "none"; });
-$("toDocker").addEventListener("click", () => showStep("docker"));
+$("toDocker").addEventListener("click", () => { showStep("docker"); dockerMode($("dockerReady").style.display === "" ? "ready" : "start"); });
 $("backWsl").addEventListener("click", () => showStep("wsl"));
+$("dockerBtn").addEventListener("click", setupDocker);
+$("toDeploy").addEventListener("click", () => showStep("deploy"));
+$("backDocker").addEventListener("click", () => showStep("docker"));
 init();

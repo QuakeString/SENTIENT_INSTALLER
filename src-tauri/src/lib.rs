@@ -9,6 +9,7 @@ use tauri::ipc::Channel;
 use tauri::Manager;
 
 use sentient_installer_core::checks::{self, Check};
+use sentient_installer_core::distro;
 use sentient_installer_core::progress::{Progress, ProgressFn};
 use sentient_installer_core::wsl;
 
@@ -53,6 +54,30 @@ async fn install_wsl(on_progress: Channel<Progress>) -> WslResult {
 #[tauri::command]
 async fn wsl_ready() -> bool {
     tauri::async_runtime::spawn_blocking(wsl::is_ready)
+        .await
+        .unwrap_or(false)
+}
+
+/// Import the `sentient` WSL distro and install Docker Engine, streaming
+/// progress. Runs off the main thread.
+#[tauri::command]
+async fn setup_docker(app: tauri::AppHandle, on_progress: Channel<Progress>) -> Result<(), String> {
+    let dir = app.path().app_local_data_dir().map_err(|e| e.to_string())?;
+    let ch = on_progress;
+    tauri::async_runtime::spawn_blocking(move || {
+        let sink: ProgressFn = Arc::new(move |p| {
+            let _ = ch.send(p);
+        });
+        distro::setup(sink, &dir)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Is the distro up with Docker responding?
+#[tauri::command]
+async fn docker_ready() -> bool {
+    tauri::async_runtime::spawn_blocking(distro::is_ready)
         .await
         .unwrap_or(false)
 }
@@ -150,6 +175,8 @@ pub fn run() {
             preflight,
             install_wsl,
             wsl_ready,
+            setup_docker,
+            docker_ready,
             get_state,
             set_state,
             arm_resume,
