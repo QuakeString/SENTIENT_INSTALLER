@@ -25,14 +25,20 @@ pub struct WslResult {
 }
 
 /// Install / enable WSL2, streaming progress to the webview. Returns whether WSL
-/// is ready and whether a reboot is required to finish.
+/// is ready and whether a reboot is required to finish. Runs the (blocking, can
+/// take minutes) work on a background thread so the UI stays responsive and the
+/// progress channel delivers live — NOT on the main thread.
 #[tauri::command]
-fn install_wsl(on_progress: Channel<Progress>) -> WslResult {
+async fn install_wsl(on_progress: Channel<Progress>) -> WslResult {
     let ch = on_progress;
-    let sink: ProgressFn = Arc::new(move |p| {
-        let _ = ch.send(p);
-    });
-    let outcome = wsl::install(sink);
+    let outcome = tauri::async_runtime::spawn_blocking(move || {
+        let sink: ProgressFn = Arc::new(move |p| {
+            let _ = ch.send(p);
+        });
+        wsl::install(sink)
+    })
+    .await
+    .expect("wsl install task panicked");
     WslResult {
         ready: outcome.ready,
         reboot_required: outcome.reboot_required,
